@@ -18,6 +18,7 @@
 # Write your own HTTP GET and POST
 # The point is to understand what you have to send and get experience with it
 
+from sqlite3 import connect
 import sys
 import socket
 import re
@@ -41,6 +42,9 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
+#get_code gets the response code and then you change the code to whatever you get from the response
+#they just have 500 there as a place holder
+
         return None
 
     def get_headers(self,data):
@@ -67,12 +71,55 @@ class HTTPClient(object):
                 done = not part
         return buffer.decode('utf-8')
 
+
+    
+    def createGETrequestHeader(self, host:str, port:int, path:str):
+        # host header specify the host and port this request is sent to 
+        print("reached here")
+        if (port != ''): 
+            hostAndPort = host + ":" + str(port)  
+        else:
+            hostAndPort = host  # if they didint have port
+        requestHeader = ""
+        requestLine = f'GET {path} HTTP/1.1\r\n'
+        HostHeader = f'Host: {hostAndPort}\r\n'
+        ConnectionHeader = f'Connection: keep-alive\r\n'
+
+        requestHeader = requestLine + HostHeader + ConnectionHeader
+
+        #print(requestHeader)
+        return requestHeader
+
     def GET(self, url, args=None):
+        # I need to connect to the server and get its body content
         code = 500
         body = ""
+        o = urllib.parse.urlparse(url)
+        print("in url, the host is  " , o.hostname)
+        print("in url, the port is " , o.port)
+        print("in url, the path is " , o.path)
+        hostname = o.hostname
+        port = o.port
+        path = o.path
+
+        # connect to the server to get the get
+        requestHeader = self.createGETrequestHeader(hostname, port, path)
+        #self.close()
+        self.connect(hostname, port) 
+        print("established connection")
+        self.sendall(requestHeader)
+        print("sent the data")
+        response = self.recvall(self.socket)        
+        print(response)
+
+
+        self.close()
+
         return HTTPResponse(code, body)
 
+
     def POST(self, url, args=None):
+
         code = 500
         body = ""
         return HTTPResponse(code, body)
@@ -83,6 +130,9 @@ class HTTPClient(object):
         else:
             return self.GET( url, args )
     
+
+
+
 if __name__ == "__main__":
     client = HTTPClient()
     command = "GET"
