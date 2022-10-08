@@ -41,11 +41,19 @@ class HTTPClient(object):
         self.socket.connect((host, port))
         return None
 
-    def get_code(self, data):
+    def get_code(self, data: str):
 #get_code gets the response code and then you change the code to whatever you get from the response
 #they just have 500 there as a place holder
-
-        return None
+        assert(len(data) > 0) 
+        dataToken = self.parseGetResponse(data)
+        StatusLine =  dataToken[0]
+        
+        if ("404" in StatusLine):
+            return 404
+        elif ("200" in StatusLine):
+            return 200
+        else:
+            return -1  # error code
 
     def get_headers(self,data):
         return None
@@ -85,7 +93,7 @@ class HTTPClient(object):
         HostHeader = f'Host: {hostAndPort}\r\n'
         ConnectionHeader = f'Connection: keep-alive\r\n'
 
-        requestHeader = requestLine + HostHeader + ConnectionHeader
+        requestHeader = requestLine + HostHeader + ConnectionHeader + "\r\n"
 
         #print(requestHeader)
         return requestHeader
@@ -110,9 +118,14 @@ class HTTPClient(object):
         self.sendall(requestHeader)
         print("sent the data")
         response = self.recvall(self.socket)        
+        print("response is")
         print(response)
 
-
+        code = self.get_code(response)  # parse and get status code
+        assert(code != -1)
+        print("----")
+        print("got the code", code)
+        print("-----")
         self.close()
 
         return HTTPResponse(code, body)
@@ -131,7 +144,10 @@ class HTTPClient(object):
             return self.GET( url, args )
     
 
-
+    # split by \r\n to tokenize response header into subheaders
+    def parseGetResponse(self, responseHeader):
+        l = responseHeader.split("\r\n")
+        return l
 
 if __name__ == "__main__":
     client = HTTPClient()
