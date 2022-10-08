@@ -18,6 +18,7 @@
 # Write your own HTTP GET and POST
 # The point is to understand what you have to send and get experience with it
 
+from ast import arg
 from sqlite3 import connect
 import sys
 import socket
@@ -58,8 +59,10 @@ class HTTPClient(object):
     def get_headers(self,data):
         return None
 
-    def get_body(self, data):
-        return None
+    def get_body(self, data):   
+        # recall, body is separated by \r\n\r\n
+        body = data.split("\r\n\r\n")[1]
+        return body
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -83,7 +86,7 @@ class HTTPClient(object):
     
     def createGETrequestHeader(self, host:str, port:int, path:str):
         # host header specify the host and port this request is sent to 
-        print("reached here")
+        #print("reached here")
         if (port != ''): 
             hostAndPort = host + ":" + str(port)  
         else:
@@ -103,9 +106,9 @@ class HTTPClient(object):
         code = 500
         body = ""
         o = urllib.parse.urlparse(url)
-        print("in url, the host is  " , o.hostname)
-        print("in url, the port is " , o.port)
-        print("in url, the path is " , o.path)
+        #print("in url, the host is  " , o.hostname)
+        #print("in url, the port is " , o.port)
+        #print("in url, the path is " , o.path)
         hostname = o.hostname
         port = o.port
         path = o.path
@@ -114,27 +117,70 @@ class HTTPClient(object):
         requestHeader = self.createGETrequestHeader(hostname, port, path)
         #self.close()
         self.connect(hostname, port) 
-        print("established connection")
+        #print("established connection")
         self.sendall(requestHeader)
-        print("sent the data")
+        #print("sent the data")
         response = self.recvall(self.socket)        
-        print("response is")
-        print(response)
+        #print("response is")
+        #print(response)
 
         code = self.get_code(response)  # parse and get status code
         assert(code != -1)
-        print("----")
-        print("got the code", code)
-        print("-----")
+        #print("----")
+        #print("got the code", code)
+        #print("-----")
+        body = self.get_body(response)
         self.close()
 
         return HTTPResponse(code, body)
 
 
+    """
+    args: None or dictionary
+        if dictionary, it is the keyvalue pair we want to post
+        we have to urlEncode this dictionary so that it becomes:
+        {k1:v1, k2:v2} -> k1=v1&k2=v2 and special characters are encoded 
+    """
     def POST(self, url, args=None):
-
+        urls = [
+            "http://www.cs.ualberta.ca/",
+            "http://softwareprocess.es/static/SoftwareProcess.es.html",
+            "http://c2.com/cgi/wiki?CommonLispHyperSpec",
+            "http://slashdot.org"
+            ]
         code = 500
         body = ""
+
+        o = urllib.parse.urlparse(url)
+        hostname = o.hostname
+        port = o.port
+        path = o.path
+
+        if (url in urls):
+            print("WILD URL IS")
+            print(o)
+
+        if (args == None):
+            print("URL ENCODE NONE ARG")
+            encodedNull = urllib.parse.urlencode('')
+            print(encodedNull.encode('utf-8'))
+            body = ''
+            assert(body == encodedNull)
+        else:
+            body = urllib.parse.urlencode(args)
+        
+
+        requestHeader = self.createPOSTrequestHeader(hostname, port, path, body) 
+
+
+        self.connect(hostname, port)
+        self.sendall(requestHeader)
+        response = self.recvall(self.socket)
+
+        code = self.get_code(response)
+        body = self.get_body(response)
+
+        self.close()
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
@@ -148,6 +194,23 @@ class HTTPClient(object):
     def parseGetResponse(self, responseHeader):
         l = responseHeader.split("\r\n")
         return l
+
+    def createPOSTrequestHeader(self, host: str, port: int, path: str, postContent:str):
+        if (port != ''): 
+            hostAndPort = host + ":" + str(port)  
+        else:
+            hostAndPort = host  # if they didint have port
+        requestHeader = ""
+        requestLine = f'POST {path} HTTP/1.1\r\n'
+        HostHeader = f'Host: {hostAndPort}\r\n'
+        #ConnectionHeader = f'Connection: keep-alive\r\n'
+        ContentType = f'Content-type: application/x-www-form-urlencoded\r\n'
+        l = len(postContent)
+        ContentLength = f'Content-Length: {str(l)}\r\n'
+        requestHeader = requestLine + HostHeader + ContentType + ContentLength + "\r\n" + postContent
+        #print(requestHeader)
+        return requestHeader
+
 
 if __name__ == "__main__":
     client = HTTPClient()
