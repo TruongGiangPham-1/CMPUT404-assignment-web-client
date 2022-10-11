@@ -48,7 +48,8 @@ class HTTPClient(object):
         assert(len(data) > 0) 
         dataToken = self.parseGetResponse(data)
         StatusLine =  dataToken[0]
-        
+        code = StatusLine.split(' ')[1] 
+        return int(code)
         if ("404" in StatusLine):
             return 404
         elif ("200" in StatusLine):
@@ -87,14 +88,16 @@ class HTTPClient(object):
     def createGETrequestHeader(self, host:str, port:int, path:str):
         # host header specify the host and port this request is sent to 
         #print("reached here")
-        if (port != ''): 
+        hostAndPort = ""
+        if (port != None): 
             hostAndPort = host + ":" + str(port)  
         else:
-            hostAndPort = host  # if they didint have port
+            #hostAndPort = host  # if they didint have port
+            hostAndPort = host + ":" + str(80)  
         requestHeader = ""
         requestLine = f'GET {path} HTTP/1.1\r\n'
         HostHeader = f'Host: {hostAndPort}\r\n'
-        ConnectionHeader = f'Connection: keep-alive\r\n'
+        ConnectionHeader = f'Connection: close\r\n'
 
         requestHeader = requestLine + HostHeader + ConnectionHeader + "\r\n"
 
@@ -103,6 +106,12 @@ class HTTPClient(object):
 
     def GET(self, url, args=None):
         # I need to connect to the server and get its body content
+        urls = [ # in this url, often time the port is None
+            "http://www.cs.ualberta.ca/",
+            "http://softwareprocess.es/static/SoftwareProcess.es.html",
+            "http://c2.com/cgi/wiki?CommonLispHyperSpec",
+            "http://slashdot.org"
+            ]
         code = 500
         body = ""
         o = urllib.parse.urlparse(url)
@@ -113,16 +122,32 @@ class HTTPClient(object):
         port = o.port
         path = o.path
 
+        if (url in urls):
+            #print("wild url is ")
+            #print("netloc", o.netloc)
+            #print("hostname", o.hostname)
+            #print("path is", path, " type path is ", type(path))
+            #print("port is", port)  # only 
+            pass
+
         # connect to the server to get the get
+        if (path == ''): path = '/'
         requestHeader = self.createGETrequestHeader(hostname, port, path)
+        if (port == None):
+            #print("request header is ")
+            print(requestHeader)
         #self.close()
-        self.connect(hostname, port) 
+        if (port == None): # these wild urls have None port so we use tcp port 80
+            self.connect(hostname, 80)
+        else: 
+            self.connect(hostname, port) 
         #print("established connection")
         self.sendall(requestHeader)
         #print("sent the data")
         response = self.recvall(self.socket)        
-        #print("response is")
-        #print(response)
+        if (url in urls):
+            #print("response is")
+            print(response)
 
         code = self.get_code(response)  # parse and get status code
         assert(code != -1)
@@ -142,12 +167,7 @@ class HTTPClient(object):
         {k1:v1, k2:v2} -> k1=v1&k2=v2 and special characters are encoded 
     """
     def POST(self, url, args=None):
-        urls = [
-            "http://www.cs.ualberta.ca/",
-            "http://softwareprocess.es/static/SoftwareProcess.es.html",
-            "http://c2.com/cgi/wiki?CommonLispHyperSpec",
-            "http://slashdot.org"
-            ]
+
         code = 500
         body = ""
 
@@ -156,14 +176,11 @@ class HTTPClient(object):
         port = o.port
         path = o.path
 
-        if (url in urls):
-            print("WILD URL IS")
-            print(o)
 
         if (args == None):
-            print("URL ENCODE NONE ARG")
+            #print("URL ENCODE NONE ARG")
             encodedNull = urllib.parse.urlencode('')
-            print(encodedNull.encode('utf-8'))
+            #print(encodedNull.encode('utf-8'))
             body = ''
             assert(body == encodedNull)
         else:
