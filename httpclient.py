@@ -131,11 +131,8 @@ class HTTPClient(object):
             pass
 
         # connect to the server to get the get
-        if (path == ''): path = '/'
+        if (path == ''): path = '/'  # some wild url have path variable to be ''
         requestHeader = self.createGETrequestHeader(hostname, port, path)
-        if (port == None):
-            #print("request header is ")
-            print(requestHeader)
         #self.close()
         if (port == None): # these wild urls have None port so we use tcp port 80
             self.connect(hostname, 80)
@@ -145,9 +142,6 @@ class HTTPClient(object):
         self.sendall(requestHeader)
         #print("sent the data")
         response = self.recvall(self.socket)        
-        if (url in urls):
-            #print("response is")
-            print(response)
 
         code = self.get_code(response)  # parse and get status code
         assert(code != -1)
