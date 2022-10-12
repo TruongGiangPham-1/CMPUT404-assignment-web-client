@@ -142,7 +142,7 @@ class HTTPClient(object):
         self.sendall(requestHeader)
         #print("sent the data")
         response = self.recvall(self.socket)        
-
+        print(response)
         code = self.get_code(response)  # parse and get status code
         assert(code != -1)
         #print("----")
@@ -187,7 +187,7 @@ class HTTPClient(object):
         self.connect(hostname, port)
         self.sendall(requestHeader)
         response = self.recvall(self.socket)
-
+        print(response)
         code = self.get_code(response)
         body = self.get_body(response)
 
